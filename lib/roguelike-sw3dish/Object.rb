@@ -16,9 +16,12 @@ class Object
     end
 
     def draw
-        #set color, then draw the character that represents this object at its position
-        TCOD.console_set_default_foreground($con, @color)
-        TCOD.console_put_char($con, @x, @y, @char.ord, TCOD::BKGND_NONE)
+        #only show if it's visible to the $player
+        if TCOD.map_is_in_fov($fov_map, @x, @y)
+            #set color, then draw the character that represents this object at its position
+            TCOD.console_set_default_foreground($con, @color)
+            TCOD.console_put_char($con, @x, @y, @char.ord, TCOD::BKGND_NONE)
+        end
     end
 
     def clear

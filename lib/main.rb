@@ -16,6 +16,8 @@ ROOM_MAX_SIZE = 10
 ROOM_MIN_SIZE = 6
 MAX_ROOMS = 30
 
+MAX_ROOM_MONSTERS = 3
+
 FOV_ALGO = 0
 FOV_LIGHT_WALLS = true
 TORCH_RADIUS = 10
@@ -89,14 +91,11 @@ def make_map
             # "paint" it to the $map's tiles
             create_room(new_room)
 
+            place_objects(new_room)
+
             # center coordinates of new room, will be useful later
             new_x, new_y = new_room.center
 
-            #there's a 30% chance of placin a skeleton slightly off to the center of this room
-            if TCOD.random_get_int(nil, 1, 100) <= 30
-                skeleton = Object.new(new_x + 1, new_y, 'S', TCOD::Color::LIGHT_YELLOW)
-                $objects.push(skeleton)
-            end
 
             if num_rooms == 0
                 $player.x = new_x
@@ -121,7 +120,28 @@ def make_map
     end
 end
 
+def place_objects(room)
+    # choose random number of monsters
+    num_monsters = TCOD.random_get_int(nil, 0, MAX_ROOM_MONSTERS)
 
+    0.upto(num_monsters) do |i|
+        # choose random spot for this monster
+        x = TCOD.random_get_int(nil, room.x1, room.x2)
+        y = TCOD.random_get_int(nil, room.y1, room.y2)
+
+        if not is_blocked(x, y)
+            if TCOD.random_get_int(nil, 0, 100) < 80
+                # create an orc
+                monster = Object.new(x, y, 'o', 'orc', TCOD::Color::DESATURATED_GREEN, true)
+            else
+                # create a troll
+                monster = Object.new(x, y, 'T', 'troll', TCOD::Color::DARKER_GREEN, true)
+            end
+
+            $objects << monster
+        end
+    end
+end
 
 def handle_keys
     key = TCOD.console_wait_for_keypress(true)
@@ -205,7 +225,7 @@ TCOD.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'ruby/TCOD tutorial', false,
 TCOD.sys_set_fps(LIMIT_FPS)
 $con = TCOD.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-$player = Object.new(0, 0, '@', TCOD::Color::WHITE)
+$player = Object.new(0, 0, '@', 'player', TCOD::Color::WHITE, true)
 
 $objects = [$player]
 

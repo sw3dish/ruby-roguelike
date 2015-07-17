@@ -151,24 +151,27 @@ def handle_keys
         TCOD.console_set_fullscreen(!TCOD.console_is_fullscreen())
     #exit game
     elsif key.vk == TCOD:: KEY_ESCAPE
-        return true
+        return 'exit'
     end
 
-    #movement keys
-    if TCOD.console_is_key_pressed(TCOD::KEY_UP)
-        $player.move(0, -1)
-        $fov_recompute = true
-    elsif TCOD.console_is_key_pressed(TCOD::KEY_DOWN)
-        $player.move(0, 1)
-        $fov_recompute = true
-    elsif TCOD.console_is_key_pressed(TCOD::KEY_LEFT)
-        $player.move(-1, 0)
-        $fov_recompute = true
-    elsif TCOD.console_is_key_pressed(TCOD::KEY_RIGHT)
-        $player.move(1, 0)
-        $fov_recompute = true
+    if $game_state == 'playing'
+        #movement keys
+        if TCOD.console_is_key_pressed(TCOD::KEY_UP)
+            $player.move(0, -1)
+            $fov_recompute = true
+        elsif TCOD.console_is_key_pressed(TCOD::KEY_DOWN)
+            $player.move(0, 1)
+            $fov_recompute = true
+        elsif TCOD.console_is_key_pressed(TCOD::KEY_LEFT)
+            $player.move(-1, 0)
+            $fov_recompute = true
+        elsif TCOD.console_is_key_pressed(TCOD::KEY_RIGHT)
+            $player.move(1, 0)
+            $fov_recompute = true
+        else
+            return 'didnt-take-turn'
+        end
     end
-    false
 
     false
 end
@@ -243,6 +246,9 @@ $fov_recompute = true
 
 trap('SIGINT') { exit! }
 
+$game_state = 'playing'
+player_action = nil
+
 until TCOD.console_is_window_closed
     render_all()
 
@@ -252,6 +258,6 @@ until TCOD.console_is_window_closed
         object.clear()
     end
 
-    will_exit = handle_keys
-    break if will_exit
+    player_action = handle_keys
+    break if player_action == 'exit'
 end

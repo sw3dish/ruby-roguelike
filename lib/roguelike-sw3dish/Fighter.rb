@@ -1,8 +1,7 @@
-class Fighter < Object
-    attr_accessor :max_hp, :hp, :defense, :power
-    
-    def initialize(x, y, char, name, color, blocks, hp, defense, power)
-        super(x, y, char, name, color, blocks)
+class Fighter
+    attr_accessor :owner, :max_hp, :hp, :defense, :power
+
+    def initialize(hp, defense, power)
         @max_hp = hp
         @hp = hp
         @defense = defense

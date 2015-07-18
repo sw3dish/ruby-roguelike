@@ -4,6 +4,8 @@ require 'libtcod'
 require './roguelike-sw3dish/Object'
 require './roguelike-sw3dish/Tile'
 require './roguelike-sw3dish/Rect'
+require './roguelike-sw3dish/Fighter'
+require './roguelike-sw3dish/BasicMonster'
 
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
@@ -132,10 +134,14 @@ def place_objects(room)
         if not is_blocked(x, y)
             if TCOD.random_get_int(nil, 0, 100) < 80
                 # create an orc
-                monster = Object.new(x, y, 'o', 'orc', TCOD::Color::DESATURATED_GREEN, true)
+                fighter_component = Fighter.new(hp = 10, defense = 0, power = 3)
+                ai_component = BasicMonster.new()
+                monster = Object.new(x,y,'o','orc',TCOD::Color::DESATURATED_GREEN,blocks = true,fighter = fighter_component,ai = ai_component)
             else
                 # create a troll
-                monster = Object.new(x, y, 'T', 'troll', TCOD::Color::DARKER_GREEN, true)
+                fighter_component = Fighter.new(hp = 16, defense = 1, power = 4)
+                ai_component = BasicMonster.new()
+                monster = Object.new(x,y,'T','troll',TCOD::Color::DARKER_GREEN,blocks = true,fighter = fighter_component,ai = ai_component)
             end
 
             $objects << monster
@@ -242,7 +248,8 @@ TCOD.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'ruby/TCOD tutorial', false,
 TCOD.sys_set_fps(LIMIT_FPS)
 $con = TCOD.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-$player = Object.new(0, 0, '@', 'player', TCOD::Color::WHITE, true)
+fighter_component = Fighter.new(hp = 30, defense = 2, power = 5)
+$player = Object.new(0, 0, '@', 'player', TCOD::Color::WHITE, blocks = true, fighter = fighter_component)
 
 $objects = [$player]
 

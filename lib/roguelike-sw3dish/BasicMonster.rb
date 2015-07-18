@@ -1,7 +1,12 @@
-class BasicMonster < Fighter
-    
-    def initialize(x, y, char, name, color, blocks, hp, defense, power)
-        super(x, y, char, name, color, blocks, hp, defense, power)
+class BasicMonster
+    attr_accessor :owner
+
+    def initialize
+
+    end
+
+    def take_turn
+        puts 'The ' + @owner.name + ' growls!'
     end
 
 end

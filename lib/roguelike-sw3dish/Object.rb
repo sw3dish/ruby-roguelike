@@ -1,13 +1,21 @@
 class Object
-    attr_accessor :x, :y, :char, :name, :color, :blocks
+    attr_accessor :x, :y, :char, :name, :color, :blocks, :fighter, :ai
 
-    def initialize(x, y, char, name, color, blocks = false)
+    def initialize(x, y, char, name, color, blocks = false, fighter = nil, ai = nil)
         @x = x
         @y = y
         @char = char
         @name = name
         @color = color
         @blocks = blocks
+        @fighter = fighter
+        if not @fighter.nil?
+            @fighter.owner = self
+        end
+        @ai = ai
+        if not @ai.nil?
+            @ai.owner = self
+        end
     end
 
     def move(dx, dy)

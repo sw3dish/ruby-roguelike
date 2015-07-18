@@ -157,17 +157,13 @@ def handle_keys
     if $game_state == 'playing'
         #movement keys
         if TCOD.console_is_key_pressed(TCOD::KEY_UP)
-            $player.move(0, -1)
-            $fov_recompute = true
+            player_move_or_attack(0, -1)
         elsif TCOD.console_is_key_pressed(TCOD::KEY_DOWN)
-            $player.move(0, 1)
-            $fov_recompute = true
+            player_move_or_attack(0, 1)
         elsif TCOD.console_is_key_pressed(TCOD::KEY_LEFT)
-            $player.move(-1, 0)
-            $fov_recompute = true
+            player_move_or_attack(-1, 0)
         elsif TCOD.console_is_key_pressed(TCOD::KEY_RIGHT)
-            $player.move(1, 0)
-            $fov_recompute = true
+            player_move_or_attack(1, 0)
         else
             return 'didnt-take-turn'
         end
@@ -219,6 +215,24 @@ def render_all
     TCOD.console_blit($con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, nil, 0, 0, 1.0, 1.0)
 end
 
+def player_move_or_attack(dx, dy)
+    x = $player.x + dx
+    y = $player.y + dy
+
+    target = nil
+    $objects.each do |object|
+        if object.x == x && object.y == y
+            target = object
+        end
+    end
+
+    if not target.nil?
+        puts 'The ' + target.name + ' laughs at your puny efforts to attack him!'
+    else
+        $player.move(dx, dy)
+        $fov_recompute = true
+    end
+end
 ##############################
 # Initialization and Main Loop
 ##############################
@@ -247,7 +261,7 @@ $fov_recompute = true
 trap('SIGINT') { exit! }
 
 $game_state = 'playing'
-player_action = nil
+$player_action = nil
 
 until TCOD.console_is_window_closed
     render_all()
@@ -258,6 +272,13 @@ until TCOD.console_is_window_closed
         object.clear()
     end
 
-    player_action = handle_keys
-    break if player_action == 'exit'
+    $player_action = handle_keys
+    if $game_state == 'playing' && $player_action != 'didnt-take-turn'
+        $objects.each do |object|
+            if object != $player
+                puts 'The ' + object.name + ' growls!'
+            end
+        end
+    end
+    break if $player_action == 'exit'
 end

@@ -214,11 +214,15 @@ def render_all
 
     #draw all objects in the list
     $objects.each do |object|
-        object.draw()
+        object.draw
     end
 
     #blit the contents of "con" to the root console
     TCOD.console_blit($con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, nil, 0, 0, 1.0, 1.0)
+
+    TCOD.console_set_default_foreground($con, TCOD::Color::WHITE)
+    TCOD.console_print_ex(nil, 1, SCREEN_HEIGHT - 2, TCOD::BKGND_NONE, TCOD::LEFT,
+        'HP: ' + $player.fighter.hp.to_s + '/' + $player.fighter.max_hp.to_s)
 end
 
 def player_move_or_attack(dx, dy)
@@ -233,7 +237,7 @@ def player_move_or_attack(dx, dy)
     end
 
     if not target.nil?
-        puts 'The ' + target.name + ' laughs at your puny efforts to attack him!'
+        $player.fighter.attack(target)
     else
         $player.move(dx, dy)
         $fov_recompute = true
@@ -253,7 +257,7 @@ $player = Object.new(0, 0, '@', 'player', TCOD::Color::WHITE, blocks = true, fig
 
 $objects = [$player]
 
-make_map()
+make_map
 
 #create the FOV $map, according to the generated $map
 $fov_map = TCOD.map_new(MAP_WIDTH, MAP_HEIGHT)
@@ -271,19 +275,19 @@ $game_state = 'playing'
 $player_action = nil
 
 until TCOD.console_is_window_closed
-    render_all()
+    render_all
 
-    TCOD.console_flush()
+    TCOD.console_flush
 
     $objects.each do |object|
-        object.clear()
+        object.clear
     end
 
     $player_action = handle_keys
     if $game_state == 'playing' && $player_action != 'didnt-take-turn'
         $objects.each do |object|
-            if object != $player
-                puts 'The ' + object.name + ' growls!'
+            if object.ai
+                object.ai.take_turn
             end
         end
     end

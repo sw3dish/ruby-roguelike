@@ -51,7 +51,26 @@ class Object
                 return true
             end
         end
-
         false
+    end
+
+    def move_towards(target_x, target_y)
+        # vector from this object to the target, and distance
+        dx = target_x - @x
+        dy = target_y - @y
+        distance = Math.sqrt(dx ** 2 + dy ** 2)
+
+        # normalize it to length 1 (preserving direction), then round it and
+        # convert to integer so the movement is restricted to the map grid
+        dx = (dx / distance).round
+        dy = (dy / distance).round
+        move(dx, dy)
+    end
+
+    def distance_to(other)
+        # return the distance to another object
+        dx = other.x - @x
+        dy = other.y - @y
+        Math.sqrt(dx ** 2 + dy ** 2)
     end
 end

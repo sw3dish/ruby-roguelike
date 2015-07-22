@@ -15,9 +15,8 @@ class Fighter
         end
 
         if @hp <= 0
-            function = @death_function
-            if not function.nil?
-                function(self.owner)
+            if not @death_function.nil?
+                @death_function.call(self.owner)
             end
         end
     end
@@ -26,8 +25,8 @@ class Fighter
         damage = @power - target.fighter.defense
 
         if damage > 0
-            puts self.owner.name.capitalize + ' attacks ' + target.name + ' for ' \
-                + damage.to_s + ' hit points.'
+            puts self.owner.name.capitalize + ' attacks ' + target.name + \
+            ' for ' + damage.to_s + ' hit points.'
             target.fighter.take_damage(damage)
         else
             puts self.owner.name.capitalize + ' attacks ' + target.name + \

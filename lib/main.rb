@@ -10,8 +10,13 @@ require './roguelike-sw3dish/BasicMonster'
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
 
+BAR_WIDTH = 20
+PANEL_HEIGHT = 7
+PANEL_Y = SCREEN_HEIGHT - PANEL_HEIGHT
+
 MAP_WIDTH = SCREEN_WIDTH
-MAP_HEIGHT = SCREEN_HEIGHT
+MAP_HEIGHT = 43
+
 
 # parameters for dungeon generator
 ROOM_MAX_SIZE = 10
@@ -40,7 +45,7 @@ def create_room(room)
 end
 
 def create_h_tunnel(x1, x2, y)
-    #horizontal tunnel. min() and max() are used in case x1>x2
+    #horizontal tunnel. min and max are used in case x1>x2
     ([x1,x2].min ... [x1,x2].max + 1).each do |x|
         $map[x][y].blocked = false
         $map[x][y].block_sight = false
@@ -103,7 +108,7 @@ def make_map
                 $player.x = new_x
                 $player.y = new_y
             else
-                prev_x, prev_y = rooms[num_rooms-1].center()
+                prev_x, prev_y = rooms[num_rooms-1].center
 
                 if TCOD.random_get_int(nil, 0, 1) == 1
                     #first move horizontally, then vertically
@@ -134,14 +139,42 @@ def place_objects(room)
         if not is_blocked(x, y)
             if TCOD.random_get_int(nil, 0, 100) < 80
                 # create an orc
-                fighter_component = Fighter.new(hp = 10, defense = 0, power = 3)
-                ai_component = BasicMonster.new()
-                monster = Object.new(x,y,'o','orc',TCOD::Color::DESATURATED_GREEN,blocks = true,fighter = fighter_component,ai = ai_component)
+                fighter_component = Fighter.new(
+                    hp = 10,
+                    defense = 0,
+                    power = 3,
+                    death_function = method(:monster_death)
+                )
+                ai_component = BasicMonster.new
+                monster = Object.new(
+                    x,
+                    y,
+                    'o',
+                    'orc',
+                    TCOD::Color::DESATURATED_GREEN,
+                    blocks = true,
+                    fighter = fighter_component,
+                    ai = ai_component
+                )
             else
                 # create a troll
-                fighter_component = Fighter.new(hp = 16, defense = 1, power = 4)
-                ai_component = BasicMonster.new()
-                monster = Object.new(x,y,'T','troll',TCOD::Color::DARKER_GREEN,blocks = true,fighter = fighter_component,ai = ai_component)
+                fighter_component = Fighter.new(
+                    hp = 16,
+                    defense = 1,
+                    power = 4,
+                    death_function = method(:monster_death)
+                )
+                ai_component = BasicMonster.new
+                monster = Object.new(
+                    x,
+                    y,
+                    'T',
+                    'troll',
+                    TCOD::Color::DARKER_GREEN,
+                    blocks = true,
+                    fighter = fighter_component,
+                    ai = ai_component
+                )
             end
 
             $objects << monster
@@ -154,7 +187,7 @@ def handle_keys
 
     #fullscreen
     if key.vk == TCOD::KEY_ENTER && key.lalt
-        TCOD.console_set_fullscreen(!TCOD.console_is_fullscreen())
+        TCOD.console_set_fullscreen(!TCOD.console_is_fullscreen)
     #exit game
     elsif key.vk == TCOD:: KEY_ESCAPE
         return 'exit'
@@ -182,7 +215,14 @@ def render_all
     if $fov_recompute
         #recompute FOV if needed(the $player moved or something)
         $fov_recompute = false
-        TCOD.map_compute_fov($fov_map, $player.x, $player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO)
+        TCOD.map_compute_fov(
+            $fov_map,
+            $player.x,
+            $player.y,
+            TORCH_RADIUS,
+            FOV_LIGHT_WALLS,
+            FOV_ALGO
+        )
 
         #go through all tiles, and set their background color according to the FOV
         0.upto(MAP_HEIGHT-1) do |y|
@@ -190,20 +230,49 @@ def render_all
                 visible = TCOD.map_is_in_fov($fov_map, x, y)
                 wall = $map[x][y].block_sight
                 if not visible
-                    #if it's not visible right now, the $player can only see it if it's explored
+                    #if it's not visible right now,
+                    # the $player can only see it if it's explored
                     if $map[x][y].explored
                         if wall
-                            TCOD.console_put_char_ex($con, x, y, '#'.ord, TCOD::Color::WHITE * 0.5, TCOD::Color::BLACK)
+                            TCOD.console_put_char_ex(
+                                $con,
+                                x,
+                                y,
+                                '#'.ord,
+                                TCOD::Color::WHITE * 0.5,
+                                TCOD::Color::BLACK
+                            )
                         else
-                            TCOD.console_put_char_ex($con, x, y, ' '.ord, TCOD::Color::BLACK, GROUND_COLOR * 0.5)
+                            TCOD.console_put_char_ex(
+                                $con,
+                                x,
+                                y,
+                                ' '.ord,
+                                TCOD::Color::BLACK,
+                                GROUND_COLOR * 0.5
+                            )
                         end
                     end
                 else
                     #it's visible
                     if wall
-                        TCOD.console_put_char_ex($con, x, y, '#'.ord, TCOD::Color::WHITE, TCOD::Color::BLACK)
+                        TCOD.console_put_char_ex(
+                            $con,
+                            x,
+                            y,
+                            '#'.ord,
+                            TCOD::Color::WHITE,
+                            TCOD::Color::BLACK
+                        )
                     else
-                        TCOD.console_put_char_ex($con, x, y, ' '.ord, TCOD::Color::BLACK, GROUND_COLOR)
+                        TCOD.console_put_char_ex(
+                            $con,
+                            x,
+                            y,
+                            ' '.ord,
+                            TCOD::Color::BLACK,
+                            GROUND_COLOR
+                        )
                     end
                     #since it's visible, explore it
                     $map[x][y].explored = true
@@ -214,15 +283,82 @@ def render_all
 
     #draw all objects in the list
     $objects.each do |object|
-        object.draw
+        if object != $player
+            object.draw
+        end
+        $player.draw
     end
 
     #blit the contents of "con" to the root console
-    TCOD.console_blit($con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, nil, 0, 0, 1.0, 1.0)
+    TCOD.console_blit(
+        $con,
+        0,
+        0,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+        nil,
+        0,
+        0,
+        1.0,
+        1.0
+    )
 
-    TCOD.console_set_default_foreground($con, TCOD::Color::WHITE)
-    TCOD.console_print_ex(nil, 1, SCREEN_HEIGHT - 2, TCOD::BKGND_NONE, TCOD::LEFT,
-        'HP: ' + $player.fighter.hp.to_s + '/' + $player.fighter.max_hp.to_s)
+    # prepare to render the GUI panel
+    TCOD.console_set_default_background($panel, TCOD::Color::BLACK)
+    TCOD.console_clear($panel)
+
+    # show the player's stats
+    render_bar(
+        1,
+        1,
+        BAR_WIDTH,
+        'HP',
+        $player.fighter.hp,
+        $player.fighter.max_hp,
+        TCOD::Color::LIGHT_RED,
+        TCOD::Color::DARKER_RED
+    )
+
+    # blit the contents to the root console
+    TCOD.console_blit(
+        $panel,
+        0,
+        0,
+        SCREEN_WIDTH,
+        PANEL_HEIGHT,
+        nil,
+        0,
+        PANEL_Y,
+        1.0,
+        1.0
+    )
+end
+
+def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color)
+    # render a bar (HP, experience, etc.)
+    # first, calculate the width of the bar
+    bar_width = (value / maximum).to_int * total_width
+
+    # render the background first
+    TCOD.console_set_default_background($panel, back_color)
+    TCOD.console_rect($panel, x, y, total_width, 1, false, TCOD::BKGND_SCREEN)
+
+    # now render the bar on top
+    TCOD.console_set_default_background($panel, bar_color)
+    if bar_width > 0
+        TCOD.console_rect($panel, x, y, bar_width, 1, false, TCOD::BKGND_SCREEN)
+    end
+
+    # finally, some centered text with the values
+    TCOD.console_set_default_foreground($panel, TCOD::Color::WHITE)
+    TCOD.console_print_ex(
+        $panel,
+        x + total_width / 2,
+        y,
+        TCOD::BKGND_NONE,
+        TCOD::CENTER,
+        name + " : " + value.to_s + '/' + maximum.to_s
+    )
 end
 
 def player_move_or_attack(dx, dy)
@@ -231,7 +367,7 @@ def player_move_or_attack(dx, dy)
 
     target = nil
     $objects.each do |object|
-        if object.x == x && object.y == y
+        if !object.fighter.nil? && object.x == x && object.y == y
             target = object
         end
     end
@@ -243,17 +379,65 @@ def player_move_or_attack(dx, dy)
         $fov_recompute = true
     end
 end
+
+def player_death
+    puts 'You died!'
+    $game_state = 'dead'
+
+    # for added effect, transform the player into a corpse
+    $player.char = '%'
+    $player.color = TCOD::Color::DARK_RED
+end
+
+def monster_death(monster)
+    # transform it into a corpse.
+    # it doesn't block, can't be attacked/attack, and doesn't move
+    puts monster.name.capitalize + ' is dead!'
+    monster.send_to_back
+    monster.char = '%'
+    monster.color = TCOD::Color::DARK_RED
+    monster.blocks = false
+    monster.fighter = nil
+    monster.ai = nil
+    monster.name = 'remains of ' + monster.name
+end
 ##############################
 # Initialization and Main Loop
 ##############################
 
-TCOD.console_set_custom_font('../resources/arial10x10.png', TCOD::FONT_TYPE_GREYSCALE | TCOD::FONT_LAYOUT_TCOD, 0, 0)
-TCOD.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'ruby/TCOD tutorial', false, TCOD::RENDERER_SDL)
+TCOD.console_set_custom_font(
+    '../resources/arial10x10.png',
+    TCOD::FONT_TYPE_GREYSCALE | TCOD::FONT_LAYOUT_TCOD,
+    0,
+    0
+)
+
+TCOD.console_init_root(
+    SCREEN_WIDTH,
+    SCREEN_HEIGHT,
+    'ruby/TCOD tutorial',
+    false,
+    TCOD::RENDERER_SDL
+)
 TCOD.sys_set_fps(LIMIT_FPS)
 $con = TCOD.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
+$panel = TCOD.console_new(SCREEN_WIDTH, PANEL_HEIGHT)
 
-fighter_component = Fighter.new(hp = 30, defense = 2, power = 5)
-$player = Object.new(0, 0, '@', 'player', TCOD::Color::WHITE, blocks = true, fighter = fighter_component)
+fighter_component = Fighter.new(
+    hp = 30,
+    defense = 2,
+    power = 5,
+    death_function = method(:player_death)
+)
+$player = Object.new(
+    0,
+    0,
+    '@',
+    'player',
+    TCOD::Color::WHITE,
+    blocks = true,
+    fighter = fighter_component
+)
 
 $objects = [$player]
 
@@ -263,7 +447,13 @@ make_map
 $fov_map = TCOD.map_new(MAP_WIDTH, MAP_HEIGHT)
 0.upto(MAP_HEIGHT-1) do |y|
     0.upto(MAP_WIDTH-1) do |x|
-        TCOD.map_set_properties($fov_map, x, y, !$map[x][y].block_sight, !$map[x][y].blocked)
+        TCOD.map_set_properties(
+            $fov_map,
+            x,
+            y,
+            !$map[x][y].block_sight,
+            !$map[x][y].blocked
+        )
     end
 end
 

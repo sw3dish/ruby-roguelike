@@ -40,6 +40,11 @@ class Object
         TCOD.console_put_char($con, @x, @y, ' '.ord, TCOD::BKGND_NONE)
     end
 
+    def send_to_back
+        $objects.delete(self)
+        $objects.insert(0, self)
+    end
+
     def is_blocked(x, y)
         # first test the map tile
         if $map[x][y].blocked

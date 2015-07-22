@@ -16,7 +16,7 @@ class Rect
 
     def intersect (other)
         # returns true if this rectangle intersects with another one
-        return (@x1 <= other.x2 and @x2 >= other.x1 and
-            @y1 <= other.y2 and @y2 >= other.y1)
+        return (@x1 <= other.x2 && @x2 >= other.x1 &&
+            @y1 <= other.y2 && @y2 >= other.y1)
     end
 end

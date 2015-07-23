@@ -1,7 +1,17 @@
 class Object
-    attr_accessor :x, :y, :char, :name, :color, :blocks, :fighter, :ai
+    attr_accessor :x, :y, :char, :name, :color, :blocks, :fighter, :ai, :item
 
-    def initialize(x, y, char, name, color, blocks = false, fighter = nil, ai = nil)
+    def initialize(
+        x,
+        y,
+        char,
+        name,
+        color,
+        blocks: false,
+        fighter: nil,
+        ai: nil,
+        item: nil
+    )
         @x = x
         @y = y
         @char = char
@@ -15,6 +25,10 @@ class Object
         @ai = ai
         if not @ai.nil?
             @ai.owner = self
+        end
+        @item = item
+        if not @item.nil?
+            @item.owner = self
         end
     end
 

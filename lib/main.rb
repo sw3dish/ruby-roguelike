@@ -6,6 +6,7 @@ require './roguelike-sw3dish/Tile'
 require './roguelike-sw3dish/Rect'
 require './roguelike-sw3dish/Fighter'
 require './roguelike-sw3dish/BasicMonster'
+require './roguelike-sw3dish/Item'
 
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
@@ -17,6 +18,10 @@ PANEL_Y = SCREEN_HEIGHT - PANEL_HEIGHT
 MAP_WIDTH = SCREEN_WIDTH
 MAP_HEIGHT = 43
 
+MSG_X = BAR_WIDTH + 2
+MSG_WIDTH = SCREEN_WIDTH - BAR_WIDTH - 2
+MSG_HEIGHT = PANEL_HEIGHT - 1
+
 
 # parameters for dungeon generator
 ROOM_MAX_SIZE = 10
@@ -24,6 +29,7 @@ ROOM_MIN_SIZE = 6
 MAX_ROOMS = 30
 
 MAX_ROOM_MONSTERS = 3
+MAX_ROOM_ITEMS = 2
 
 FOV_ALGO = 0
 FOV_LIGHT_WALLS = true
@@ -133,17 +139,17 @@ def place_objects(room)
 
     0.upto(num_monsters) do |i|
         # choose random spot for this monster
-        x = TCOD.random_get_int(nil, room.x1, room.x2)
-        y = TCOD.random_get_int(nil, room.y1, room.y2)
+        x = TCOD.random_get_int(nil, room.x1 + 1, room.x2 - 1)
+        y = TCOD.random_get_int(nil, room.y1 + 1, room.y2 - 1)
 
         if not is_blocked(x, y)
             if TCOD.random_get_int(nil, 0, 100) < 80
                 # create an orc
                 fighter_component = Fighter.new(
-                    hp = 10,
-                    defense = 0,
-                    power = 3,
-                    death_function = method(:monster_death)
+                    hp: 10,
+                    defense: 0,
+                    power: 3,
+                    death_function: method(:monster_death)
                 )
                 ai_component = BasicMonster.new
                 monster = Object.new(
@@ -152,17 +158,17 @@ def place_objects(room)
                     'o',
                     'orc',
                     TCOD::Color::DESATURATED_GREEN,
-                    blocks = true,
-                    fighter = fighter_component,
-                    ai = ai_component
+                    blocks: true,
+                    fighter: fighter_component,
+                    ai: ai_component
                 )
             else
                 # create a troll
                 fighter_component = Fighter.new(
-                    hp = 16,
-                    defense = 1,
-                    power = 4,
-                    death_function = method(:monster_death)
+                    hp: 16,
+                    defense: 1,
+                    power: 4,
+                    death_function: method(:monster_death)
                 )
                 ai_component = BasicMonster.new
                 monster = Object.new(
@@ -171,44 +177,93 @@ def place_objects(room)
                     'T',
                     'troll',
                     TCOD::Color::DARKER_GREEN,
-                    blocks = true,
-                    fighter = fighter_component,
-                    ai = ai_component
+                    blocks: true,
+                    fighter: fighter_component,
+                    ai: ai_component
                 )
             end
 
             $objects << monster
         end
     end
+
+    num_items = TCOD.random_get_int(nil, 0, MAX_ROOM_ITEMS)
+
+    0.upto(num_items) do |i|
+        x = TCOD.random_get_int(nil, room.x1 + 1, room.x2 - 1)
+        y = TCOD.random_get_int(nil, room.y1 + 1, room.y2 - 1)
+
+        # only place it if the tile is not blocked
+        if !is_blocked(x, y)
+            # create a healing position
+            item_component = Item.new()
+            item = Object.new(
+                x,
+                y,
+                '!',
+                'healing potion',
+                TCOD::Color::VIOLET,
+                item: item_component
+            )
+
+            $objects.push(item)
+            item.send_to_back
+        end
+    end
 end
 
 def handle_keys
-    key = TCOD.console_wait_for_keypress(true)
-
     #fullscreen
-    if key.vk == TCOD::KEY_ENTER && key.lalt
+    if $key.vk == TCOD::KEY_ENTER && $key.lalt
         TCOD.console_set_fullscreen(!TCOD.console_is_fullscreen)
     #exit game
-    elsif key.vk == TCOD:: KEY_ESCAPE
+    elsif $key.vk == TCOD:: KEY_ESCAPE
         return 'exit'
     end
 
     if $game_state == 'playing'
         #movement keys
-        if TCOD.console_is_key_pressed(TCOD::KEY_UP)
+        if $key.vk == TCOD::KEY_UP
             player_move_or_attack(0, -1)
-        elsif TCOD.console_is_key_pressed(TCOD::KEY_DOWN)
+        elsif $key.vk == TCOD::KEY_DOWN
             player_move_or_attack(0, 1)
-        elsif TCOD.console_is_key_pressed(TCOD::KEY_LEFT)
+        elsif $key.vk == TCOD::KEY_LEFT
             player_move_or_attack(-1, 0)
-        elsif TCOD.console_is_key_pressed(TCOD::KEY_RIGHT)
+        elsif $key.vk == TCOD::KEY_RIGHT
             player_move_or_attack(1, 0)
         else
+            # test for other keys
+            key_char = $key.c.chr
+
+            if key_char == 'g'
+                # pick up an item
+                $objects.each do |object| # look for an item in the player's tile
+                    if object.x == $player.x &&
+                       object.y == $player.y &&
+                       !object.nil?
+                        object.item.pick_up
+                        break
+                    end
+                end
+            end
             return 'didnt-take-turn'
         end
     end
 
     false
+end
+
+def get_names_under_mouse
+    x, y = $mouse.cx, $mouse.cy
+    names = []
+    $objects.each do |object|
+        if object.x == x &&
+           object.y == y &&
+           TCOD.map_is_in_fov($fov_map, object.x, object.y)
+          names.push(object.name)
+       end
+    end
+    names.join(', ').capitalize
 end
 
 def render_all
@@ -307,6 +362,21 @@ def render_all
     TCOD.console_set_default_background($panel, TCOD::Color::BLACK)
     TCOD.console_clear($panel)
 
+    # print the game messages, one line at a time
+    y = 1
+    $game_msgs.each do |message|
+        TCOD.console_set_default_foreground($panel, message["color"])
+        TCOD.console_print_ex(
+            $panel,
+            MSG_X,
+            y,
+            TCOD::BKGND_NONE,
+            TCOD::LEFT,
+            message["line"]
+        )
+        y += 1
+    end
+
     # show the player's stats
     render_bar(
         1,
@@ -317,6 +387,17 @@ def render_all
         $player.fighter.max_hp,
         TCOD::Color::LIGHT_RED,
         TCOD::Color::DARKER_RED
+    )
+
+    # display names of objects under the mouse
+    TCOD.console_set_default_foreground($panel, TCOD::Color::LIGHT_GREY)
+    TCOD.console_print_ex(
+        $panel,
+        1,
+        0,
+        TCOD::BKGND_NONE,
+        TCOD::LEFT,
+        get_names_under_mouse
     )
 
     # blit the contents to the root console
@@ -357,8 +438,25 @@ def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color)
         y,
         TCOD::BKGND_NONE,
         TCOD::CENTER,
-        name + " : " + value.to_s + '/' + maximum.to_s
+        name + ": " + value.to_s + '/' + maximum.to_s
     )
+end
+
+def message(new_msg, color = TCOD::Color::White)
+    new_msg_lines = wrap(new_msg, MSG_WIDTH)
+
+    new_msg_lines.each do |line|
+        if $game_msgs.length == MSG_HEIGHT
+            $game_msgs.delete_at(0)
+        end
+
+        $game_msgs.push({"line" => line, "color" => color})
+    end
+end
+
+def wrap(text, width = MSG_WIDTH)
+    text.gsub(/(.{1,#{width}})( +|$\n?)|(.{1,#{width}})/,
+    "\\1\\3\n").split("\n")
 end
 
 def player_move_or_attack(dx, dy)
@@ -424,10 +522,10 @@ $con = TCOD.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
 $panel = TCOD.console_new(SCREEN_WIDTH, PANEL_HEIGHT)
 
 fighter_component = Fighter.new(
-    hp = 30,
-    defense = 2,
-    power = 5,
-    death_function = method(:player_death)
+    hp: 30,
+    defense: 2,
+    power: 5,
+    death_function: method(:player_death)
 )
 $player = Object.new(
     0,
@@ -435,8 +533,8 @@ $player = Object.new(
     '@',
     'player',
     TCOD::Color::WHITE,
-    blocks = true,
-    fighter = fighter_component
+    blocks: true,
+    fighter: fighter_component
 )
 
 $objects = [$player]
@@ -464,7 +562,25 @@ trap('SIGINT') { exit! }
 $game_state = 'playing'
 $player_action = nil
 
+# create the list of game messages and their colors, starts empty
+$game_msgs = []
+
+message(
+    "Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.",
+    TCOD::Color::RED
+)
+
+$key = TCOD::Key.new()
+$mouse = TCOD::Mouse.new()
+
+$inventory = []
+
 until TCOD.console_is_window_closed
+    TCOD.sys_check_for_event(
+        TCOD::EVENT_KEY_PRESS | TCOD::EVENT_MOUSE,
+        $key,
+        $mouse
+    )
     render_all
 
     TCOD.console_flush

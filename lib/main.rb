@@ -39,6 +39,8 @@ LIMIT_FPS = 20
 
 GROUND_COLOR = TCOD::Color.rgb(77, 60, 41)
 
+HEAL_AMOUNT = 4
+
 def create_room(room)
     #go through the tiles in the rectangle and make them passable
     p "#{room.x1}, #{room.x2}, #{room.y1}, #{room.y2}"
@@ -499,6 +501,17 @@ def monster_death(monster)
     monster.ai = nil
     monster.name = 'remains of ' + monster.name
 end
+
+def cast_heal
+    #heal the player
+    if $player.fighter.hp == $player.fighter.max_hp
+        message('You are already at full health.', TCOD::Color::RED)
+        return 'cancelled'
+    end
+    message('Your wounds start to feel better!', TCOD::Color::LIGHT_VIOLET)
+    player.fighter.heal(HEAL_AMOUNT)
+end
+
 ##############################
 # Initialization and Main Loop
 ##############################

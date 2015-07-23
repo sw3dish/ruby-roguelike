@@ -33,4 +33,12 @@ class Fighter
                 ' but it has no effect!'
         end
     end
+
+    def heal(amount)
+        # heal by the given amount, without going over the maximum
+        @hp += amount
+        if @hp > @max_hp
+            @hp = @max_hp
+        end
+    end
 end

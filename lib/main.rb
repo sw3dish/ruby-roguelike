@@ -22,6 +22,7 @@ MSG_X = BAR_WIDTH + 2
 MSG_WIDTH = SCREEN_WIDTH - BAR_WIDTH - 2
 MSG_HEIGHT = PANEL_HEIGHT - 1
 
+INVENTORY_WIDTH = 50
 
 # parameters for dungeon generator
 ROOM_MAX_SIZE = 10
@@ -198,7 +199,7 @@ def place_objects(room)
         # only place it if the tile is not blocked
         if !is_blocked(x, y)
             # create a healing position
-            item_component = Item.new()
+            item_component = Item.new(use_function: cast_heal)
             item = Object.new(
                 x,
                 y,
@@ -248,6 +249,13 @@ def handle_keys
                     end
                 end
             end
+
+            if key_char == 'i'
+                # show the inventory
+                inventory_menu("Press the key next to an item to use it, or any' \
+                                ' other to cancel.\n")
+            end
+
             return 'didnt-take-turn'
         end
     end
@@ -459,6 +467,82 @@ end
 def wrap(text, width = MSG_WIDTH)
     text.gsub(/(.{1,#{width}})( +|$\n?)|(.{1,#{width}})/,
     "\\1\\3\n").split("\n")
+end
+
+def menu(header, options, width)
+    raise(
+        ArgumentError,
+        'Cannot have a menu with more than 26 options.'
+    ) unless options.length <= 26
+
+    # calculate total height for the header (after auto-wrap) and one line
+    # per option
+    header_height = TCOD.console_get_height_rect(
+        $con,
+        0,
+        0,
+        width,
+        SCREEN_HEIGHT,
+        header
+    )
+    height = options.length + header_height
+
+    # create an off screen console that represents the menu's window
+    window = TCOD.console_new(width, height)
+
+    #print the header, with auto-wrap
+    TCOD.console_set_default_foreground(window, TCOD::Color::WHITE)
+    TCOD.console_print_rect_ex(
+        window,
+        0,
+        0,
+        width,
+        height,
+        TCOD::BKGND_NONE,
+        TCOD::LEFT,
+        header
+    )
+
+    # print all the options
+    y = header_height
+    letter_index = 'a'.ord
+    options.each do |option_text|
+        text = "(#{letter_index.chr}) #{option_text}"
+        TCOD.console_print_ex(window, 0, y, TCOD::BKGND_NONE, TCOD::LEFT, text)
+        y, letter_index += 1
+    end
+
+    # blit the contents of window to the root console
+    x = SCREEN_WIDTH / 2 - width / 2
+    y = SCREEN_HEIGHT / 2 - height / 2
+    TCOD.console_blit(
+        window,
+        0,
+        0,
+        width,
+        height,
+        nil,
+        x,
+        y,
+        1.0,
+        0.7
+    )
+    TCOD.console_flush
+    key = TCOD.console_wait_for_keypress(true)
+end
+
+def inventory_menu(header)
+    # show a menu with each item of the inventory as an option
+    if $inventory.length == 0
+        options = ['Inventory is empty.']
+    else
+        $inventory.each do |item|
+            options.push(item.name)
+        end
+    end
+
+    index = menu(header, options, INVENTORY_WIDTH)
+
 end
 
 def player_move_or_attack(dx, dy)

@@ -12,21 +12,20 @@ class Item
         # add to the player's inventory and remove from the map
         if $inventory.length >= 26
             message(
-                'Your inventory is full, cannot pick up ' + \
-                @owner.name + '.',
+                "Your inventory is full, cannot pick up #{@owner.name}.",
                 TCOD::Color::RED
             )
         else
             $inventory.push(@owner)
             $objects.delete(@owner)
-            message('You picked up a ' + @owner.name + '!', TCOD::Color::GREEN)
+            message("You picked up a #{@owner.name}!", TCOD::Color::GREEN)
         end
     end
 
     def use
         # just call the "use_function" if it is defined
         if @use_function.nil?
-            message('The ' @owner.name + ' cannot be used.')
+            message("The #{@owner.name} cannot be used.")
         else
             if @use_function != 'cancelled'
                 $inventory.delete(@owner)

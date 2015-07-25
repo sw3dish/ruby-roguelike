@@ -448,7 +448,7 @@ def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color)
         y,
         TCOD::BKGND_NONE,
         TCOD::CENTER,
-        name + ": " + value.to_s + '/' + maximum.to_s
+        "#{name} :  #{value.to_s}/#{maximum.to_s}"
     )
 end
 
@@ -565,7 +565,7 @@ def player_move_or_attack(dx, dy)
 end
 
 def player_death
-    puts 'You died!'
+    message('You died!', TCOD::Color::RED)
     $game_state = 'dead'
 
     # for added effect, transform the player into a corpse
@@ -576,14 +576,14 @@ end
 def monster_death(monster)
     # transform it into a corpse.
     # it doesn't block, can't be attacked/attack, and doesn't move
-    puts monster.name.capitalize + ' is dead!'
+    message("#{monster.name.capitalize} is dead!", TCOD::Color::ORANGE)
     monster.send_to_back
     monster.char = '%'
     monster.color = TCOD::Color::DARK_RED
     monster.blocks = false
     monster.fighter = nil
     monster.ai = nil
-    monster.name = 'remains of ' + monster.name
+    monster.name = "remains of #{monster.name}"
 end
 
 def cast_heal

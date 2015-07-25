@@ -1,9 +1,7 @@
 class Item
-    attr_accessor :owner, :death_function
+    attr_accessor :owner, :use_function
 
-    def initialize(
-            use_function: nil
-    )
+    def initialize(use_function: nil)
         @use_function = use_function
     end
 
@@ -27,7 +25,7 @@ class Item
         if @use_function.nil?
             message("The #{@owner.name} cannot be used.")
         else
-            if @use_function != 'cancelled'
+            if @use_function.call != 'cancelled'
                 $inventory.delete(@owner)
             end
         end

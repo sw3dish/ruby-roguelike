@@ -199,7 +199,7 @@ def place_objects(room)
         # only place it if the tile is not blocked
         if !is_blocked(x, y)
             # create a healing position
-            item_component = Item.new(use_function: cast_heal)
+            item_component = Item.new(use_function: method(:cast_heal))
             item = Object.new(
                 x,
                 y,
@@ -243,7 +243,7 @@ def handle_keys
                 $objects.each do |object| # look for an item in the player's tile
                     if object.x == $player.x &&
                        object.y == $player.y &&
-                       !object.nil?
+                       !object.item.nil?
                         object.item.pick_up
                         break
                     end
@@ -252,8 +252,13 @@ def handle_keys
 
             if key_char == 'i'
                 # show the inventory
-                inventory_menu("Press the key next to an item to use it, or any' \
-                                ' other to cancel.\n")
+                chosen_item = inventory_menu(
+                    "Press the key next to an item to use it, or any other to cancel.\n"
+                )
+
+                if !chosen_item.nil?
+                    chosen_item.use
+                end
             end
 
             return 'didnt-take-turn'
@@ -452,7 +457,7 @@ def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color)
     )
 end
 
-def message(new_msg, color = TCOD::Color::White)
+def message(new_msg, color = TCOD::Color::WHITE)
     new_msg_lines = wrap(new_msg, MSG_WIDTH)
 
     new_msg_lines.each do |line|
@@ -509,7 +514,8 @@ def menu(header, options, width)
     options.each do |option_text|
         text = "(#{letter_index.chr}) #{option_text}"
         TCOD.console_print_ex(window, 0, y, TCOD::BKGND_NONE, TCOD::LEFT, text)
-        y, letter_index += 1
+        y += 1
+        letter_index += 1
     end
 
     # blit the contents of window to the root console
@@ -529,6 +535,12 @@ def menu(header, options, width)
     )
     TCOD.console_flush
     key = TCOD.console_wait_for_keypress(true)
+
+    index = key.c.ord - 'a'.ord
+    if index >= 0 && index < options.length
+        return index
+    end
+    nil
 end
 
 def inventory_menu(header)
@@ -536,6 +548,7 @@ def inventory_menu(header)
     if $inventory.length == 0
         options = ['Inventory is empty.']
     else
+        options = []
         $inventory.each do |item|
             options.push(item.name)
         end
@@ -543,6 +556,10 @@ def inventory_menu(header)
 
     index = menu(header, options, INVENTORY_WIDTH)
 
+    if index.nil? || $inventory.length == 0
+        return nil
+    end
+    $inventory[index].item
 end
 
 def player_move_or_attack(dx, dy)
@@ -564,7 +581,7 @@ def player_move_or_attack(dx, dy)
     end
 end
 
-def player_death
+def player_death(player)
     message('You died!', TCOD::Color::RED)
     $game_state = 'dead'
 
@@ -593,7 +610,7 @@ def cast_heal
         return 'cancelled'
     end
     message('Your wounds start to feel better!', TCOD::Color::LIGHT_VIOLET)
-    player.fighter.heal(HEAL_AMOUNT)
+    $player.fighter.heal(HEAL_AMOUNT)
 end
 
 ##############################

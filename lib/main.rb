@@ -5,7 +5,8 @@ require './roguelike-sw3dish/Object'
 require './roguelike-sw3dish/Tile'
 require './roguelike-sw3dish/Rect'
 require './roguelike-sw3dish/Fighter'
-require './roguelike-sw3dish/BasicMonster'
+require './roguelike-sw3dish/ai/BasicMonster'
+require './roguelike-sw3dish/ai/ConfusedMonster'
 require './roguelike-sw3dish/Item'
 
 SCREEN_WIDTH = 80
@@ -41,6 +42,10 @@ LIMIT_FPS = 20
 GROUND_COLOR = TCOD::Color.rgb(77, 60, 41)
 
 HEAL_AMOUNT = 4
+LIGHTNING_DAMAGE = 20
+LIGHTNING_RANGE = 5
+
+CONFUSE_NUM_TURNS = 10
 
 def create_room(room)
     #go through the tiles in the rectangle and make them passable
@@ -198,16 +203,42 @@ def place_objects(room)
 
         # only place it if the tile is not blocked
         if !is_blocked(x, y)
-            # create a healing position
-            item_component = Item.new(use_function: method(:cast_heal))
-            item = Object.new(
-                x,
-                y,
-                '!',
-                'healing potion',
-                TCOD::Color::VIOLET,
-                item: item_component
-            )
+
+            dice = TCOD.random_get_int(nil, 0, 100)
+            if dice < 70
+                # create a healing potion (70% chance)
+                item_component = Item.new(use_function: method(:cast_heal))
+                item = Object.new(
+                    x,
+                    y,
+                    '!',
+                    'healing potion',
+                    TCOD::Color::VIOLET,
+                    item: item_component
+                )
+            elsif dice < 70 + 15
+                # create a lightning bolt scroll (15% chance)
+                item_component = Item(use_function = cast_lightning)
+                item = Object.new(
+                    x,
+                    y,
+                    '#',
+                    'scroll of lightning bolt',
+                    TCOD::Color::LIGHT_YELLOW,
+                    item: item_component
+                )
+            else
+                # create a confuse scroll (15% chance)
+                item_component = Item.new(use_function: method(cast_confuse))
+                item = Object.new(
+                    x,
+                    y,
+                    '#',
+                    'scroll of confusion',
+                    TCOD::Color::LIGHT_YELLOW,
+                    item: item_component
+                )
+            end
 
             $objects.push(item)
             item.send_to_back
@@ -611,6 +642,56 @@ def cast_heal
     end
     message('Your wounds start to feel better!', TCOD::Color::LIGHT_VIOLET)
     $player.fighter.heal(HEAL_AMOUNT)
+end
+
+def cast_lightning
+    # find closest enemy (inside a maximum range) and damage it
+    monster = closest_monster(LIGHTNING_RANGE)
+    if monster.nil?
+        message('No enemy is close enough to strike', TCOD::Color::RED)
+        return 'cancelled'
+    end
+
+    # zap it!
+    message("A lightning bolt strikes the #{monster.name} with a loud thunder "\
+                "for #{LIGHTNING_DAMAGE.to_s} hit points", TCOD::Color::LIGHT_BLUE)
+    monster.fighter.take_damage(LIGHTNING_DAMAGE)
+end
+
+def cast_confuse
+    # find closest enemy in-range and confuse it
+    monster = closest_monster(CONFUSE_RANGE)
+    if monster.nil?
+        message('No enemy is close enough to confuse.', TCOD::Color::RED)
+        return 'cancelled'
+    end
+    old_ai = monster.ai
+    monster.ai = ConfusedMonster.new(old_ai)
+    monster.ai.owner = monster
+    message("The eyes of the #{monster.name} look vacant, as it starts to "\
+            "stumble around!", TCOD::Color::LIGHT_GREEN)
+
+end
+
+def closest_monster(max_range)
+    # find closest enemy, up to a maximum range, and in the player's fov
+    closest_enemy = nil
+    # start with (slightly more than) maximum damage
+    closest_dist = max_range + 1
+
+    objects.each do |object|
+        if !object.fighter.nil? &&
+            !object == $player &&
+            TCOD.map_is_in_fov($fov_map, object.x, object.y)
+            # calculate distance between this object and the player
+            dist = $player.distance_to(object)
+            if dist < closest_dist
+                closest_enemy = object
+                closest_dist = dist
+            end
+        end
+    end
+    closest_enemy
 end
 
 ##############################

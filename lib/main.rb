@@ -42,8 +42,12 @@ LIMIT_FPS = 20
 GROUND_COLOR = TCOD::Color.rgb(77, 60, 41)
 
 HEAL_AMOUNT = 4
+
 LIGHTNING_DAMAGE = 20
 LIGHTNING_RANGE = 5
+
+FIREBALL_RADIUS = 3
+FIREBALL_DAMAGE = 12
 
 CONFUSE_NUM_TURNS = 10
 
@@ -216,8 +220,8 @@ def place_objects(room)
                     TCOD::Color::VIOLET,
                     item: item_component
                 )
-            elsif dice < 70 + 15
-                # create a lightning bolt scroll (15% chance)
+            elsif dice < 70 + 10
+                # create a lightning bolt scroll (10% chance)
                 item_component = Item(use_function = cast_lightning)
                 item = Object.new(
                     x,
@@ -227,8 +231,21 @@ def place_objects(room)
                     TCOD::Color::LIGHT_YELLOW,
                     item: item_component
                 )
+
+            elsif dice < 70 + 10 + 10
+                # create a fireball scroll (10% chance)
+                item_component = Item(use_function = cast_fireball)
+                item = Object.new(
+                    x,
+                    y,
+                    '#',
+                    'scroll of fireball',
+                    TCOD::Color::LIGHT_YELLOW,
+                    item: item_component
+                )
+
             else
-                # create a confuse scroll (15% chance)
+                # create a confuse scroll (10% chance)
                 item_component = Item.new(use_function: method(cast_confuse))
                 item = Object.new(
                     x,
@@ -310,6 +327,32 @@ def get_names_under_mouse
        end
     end
     names.join(', ').capitalize
+end
+
+def target_tile(max_range = nil)
+    # return the position of a tile left-flicked in player's FOV(optionally in a
+    # range), or (nil, nil) if right-clicked
+    while true
+        # render the screen. this erases the inventory
+        # and shows the names of objects under the mouse
+        TCOD.console_flush()
+        TCOD.sys_check_for_event(
+            TCOD::EVENT_KEY_PRESS | TCOD::EVENT_MOUSE,
+            $key,
+            $mouse
+        )
+        render_all()
+
+        x, y = $mouse.cx, $mouse.cy
+
+        if $mouse.lbutton_pressed &&
+            TCOD.map_is_in_fov($fov_map, x, y) &&
+            (max_range.nil? || $player.distance(x, y) <= max_range)
+            return {"x" => x, "y" => y}
+        elsif $mouse.rbutton_pressed || key.vk == TCOD::KEY_ESCAPE
+            return {"x" => nil, "y" => nil}
+        end
+    end
 end
 
 def render_all
@@ -671,6 +714,33 @@ def cast_confuse
     message("The eyes of the #{monster.name} look vacant, as it starts to "\
             "stumble around!", TCOD::Color::LIGHT_GREEN)
 
+end
+
+def cast_fireball
+    # ask the player for a target tile to throw a fireball at
+    message(
+        "Left-click a target tile for the fireball, or right-click to cancel",
+        TCOD::Color::LIGHT_CYAN
+    )
+    coords = target_tile()
+    if coords.x.nil?
+        return 'cancelled'
+    end
+    message(
+        "The fireball explodes burning everything within "\
+            "#{FIREBALL_RADIUS.to_s} tiles!",
+        TCOD::Color::ORANGE
+    )
+    $objects.each do |object|
+        if object.distance(coords.x, coords.y) <= FIREBALL_RADIUS &&
+            !object.fighter.nil?
+            message(
+                "The #{object.name} gets burned for"\
+                    "#{FIREBALL_DAMAGE.to_s} hit points.",
+                TCOD::Color::ORANGE
+            )
+            object.fighter.take_damage(FIREBALL_DAMAGE)
+        end
 end
 
 def closest_monster(max_range)

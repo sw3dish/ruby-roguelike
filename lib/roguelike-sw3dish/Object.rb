@@ -92,4 +92,9 @@ class Object
         dy = other.y - @y
         Math.sqrt(dx ** 2 + dy ** 2)
     end
+
+    def distance(x, y)
+        # return the distance to some coordinates
+        return Math.sqrt((x - @x) ** 2 + (y - @y) ** 2)
+    end
 end

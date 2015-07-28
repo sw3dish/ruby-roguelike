@@ -355,6 +355,27 @@ def target_tile(max_range = nil)
     end
 end
 
+def target_monster(max_range = nil)
+    # returns a clicked monster inside FOV up to a range, or nil if right-clicked
+    while true
+        x, y = target_tile(max_range).x, target_tile(max_range).y
+        if x.nil?
+            return nil
+        end
+
+        # return the first clicked monster, otherwise continue looping through
+        # objects
+        $objects.each do |object|
+            if object.x == x &&
+                object.y == y &&
+                !object.fighter.nil? &&
+                object != $player
+                return object
+            end
+        end
+    end
+end
+
 def render_all
     if $fov_recompute
         #recompute FOV if needed(the $player moved or something)
@@ -702,10 +723,12 @@ def cast_lightning
 end
 
 def cast_confuse
-    # find closest enemy in-range and confuse it
-    monster = closest_monster(CONFUSE_RANGE)
+    message(
+        "Left-click an enemy to confuse it, or right-click to cancel.",
+        TCOD::Color::LIGHT_CYAN
+    )
+    monster = target_monster(CONFUSE_RANGE)
     if monster.nil?
-        message('No enemy is close enough to confuse.', TCOD::Color::RED)
         return 'cancelled'
     end
     old_ai = monster.ai

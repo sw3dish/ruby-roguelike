@@ -309,6 +309,16 @@ def handle_keys
                 end
             end
 
+            if key_char == 'd'
+                # show the inventory; if an item is selected, drop it
+                chosen_item = inventory_menu(
+                    "Press the key next to an item to drop it, or any other to cancel.\n"
+                )
+                if !chosen_item.nil?
+                    chosen_item.drop
+                end
+            end
+
             return 'didnt-take-turn'
         end
     end
@@ -786,6 +796,8 @@ def closest_monster(max_range)
     end
     closest_enemy
 end
+
+
 
 ##############################
 # Initialization and Main Loop

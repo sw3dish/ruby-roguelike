@@ -30,4 +30,14 @@ class Item
             end
         end
     end
+
+    def drop
+        # add to the map and remove from the inventory
+        # also, place it at the player's coordinates
+        $objects.push(@owner)
+        $inventory.delete(@owner)
+        @owner.x = $player.x
+        @owner.y = $player.y
+        message("You dropped a #{@owner.name}.", TCOD::Color::YELLOW)
+    end
 end
